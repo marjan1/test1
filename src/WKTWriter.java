@@ -1,10 +1,16 @@
 import com.sinergise.geometry.*;
 
-import java.awt.image.ImagingOpException;
 import java.io.IOException;
 import java.util.Iterator;
 
 public class WKTWriter {
+
+    private static final String EMPTY = " EMPTY";
+    private static final String OPEN_BRACKET = "(";
+    private static final String CLOSE_BRACKET = ")";
+    private static final String OPEN_BRACKET_WITH_SPACE = " (";
+    private static final String COMMA_WITH_SPACE = ", ";
+    private static final String CLOSE_BRACKET_WITH_COMMA_AND_SPACE = "), ";
 
     /**
      * Transforms the input Geometry object into WKT-formatted String. e.g.
@@ -23,7 +29,7 @@ public class WKTWriter {
     public String write(Geometry geom) throws IOException {
 
         if (geom.isEmpty()) {
-            return geom.getClass().getSimpleName().toUpperCase() + " EMPTY";
+            return geom.getClass().getSimpleName().toUpperCase() + EMPTY;
         }
 
         if (geom instanceof MultiPolygon) {
@@ -46,42 +52,42 @@ public class WKTWriter {
 
         }
         if (geom instanceof Polygon) {
-            return concat(geom, "(", getPolygonCoordinates(((Polygon) geom)), ")");
+            return concat(geom, OPEN_BRACKET, getPolygonCoordinates(((Polygon) geom)), CLOSE_BRACKET);
         }
         throw new IOException("Parsing not good");
     }
 
-    private String getGeometryCollectionString(Geometry geom)throws IOException {
+    private String getGeometryCollectionString(Geometry geom) throws IOException {
         Iterator it = ((GeometryCollection) geom).iterator();
-        String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
+        String returnValue = geom.getClass().getSimpleName().toUpperCase() + OPEN_BRACKET_WITH_SPACE;
         while (it.hasNext()) {
-            returnValue = returnValue + write((Geometry) it.next()) + ", ";
+            returnValue = returnValue + write((Geometry) it.next()) + COMMA_WITH_SPACE;
         }
-        return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+        return removeLastTwoChars(returnValue) + CLOSE_BRACKET;
     }
 
     private String getMultiString(Geometry geom) {
-        String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
+        String returnValue = geom.getClass().getSimpleName().toUpperCase() + OPEN_BRACKET_WITH_SPACE;
         for (int i = 0; i < ((MultiLineString) geom).size(); i++) {
-            returnValue = returnValue + getLineStringCoordinates(((MultiLineString) geom).get(i)) + ", ";
+            returnValue = returnValue + getLineStringCoordinates(((MultiLineString) geom).get(i)) + COMMA_WITH_SPACE;
         }
-        return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+        return removeLastTwoChars(returnValue) + CLOSE_BRACKET;
     }
 
     private String getMultiPointString(Geometry geom) {
-        String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
+        String returnValue = geom.getClass().getSimpleName().toUpperCase() + OPEN_BRACKET_WITH_SPACE;
         for (int i = 0; i < ((MultiPoint) geom).size(); i++) {
-            returnValue = returnValue + getPointCoordinates(((MultiPoint) geom).get(i)) + ", ";
+            returnValue = returnValue + getPointCoordinates(((MultiPoint) geom).get(i)) + COMMA_WITH_SPACE;
         }
-        return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+        return removeLastTwoChars(returnValue) + CLOSE_BRACKET;
     }
 
     private String getMultiPolygonString(Geometry geom) {
-        String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
+        String returnValue = geom.getClass().getSimpleName().toUpperCase() + OPEN_BRACKET_WITH_SPACE;
         for (int i = 0; i < ((MultiPolygon) geom).size(); i++) {
-            returnValue = returnValue + "(" + getPolygonCoordinates(((MultiPolygon) geom).get(i)) + "), ";
+            returnValue = returnValue + OPEN_BRACKET + getPolygonCoordinates(((MultiPolygon) geom).get(i)) + CLOSE_BRACKET_WITH_COMMA_AND_SPACE;
         }
-        return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+        return removeLastTwoChars(returnValue) + CLOSE_BRACKET;
     }
 
     private String concat(Geometry geometry, String... parts) {
@@ -93,23 +99,27 @@ public class WKTWriter {
         String returnValue = getLineStringCoordinates(geom.getOuter());
         if (geom.getNumHoles() > 0) {
             for (int i = 0; i < geom.getNumHoles(); i++) {
-                returnValue = returnValue + ", " + getLineStringCoordinates(geom.getHole(i));
+                returnValue = returnValue + COMMA_WITH_SPACE + getLineStringCoordinates(geom.getHole(i));
             }
         }
         return returnValue;
     }
 
     private String getPointCoordinates(Point geom) {
-        return "(" + (int) geom.getX() + " " + (int) geom.getY() + ")";
+        return OPEN_BRACKET + (int) geom.getX() + " " + (int) geom.getY() + CLOSE_BRACKET;
     }
 
     private String getLineStringCoordinates(LineString geom) {
-        String returnValue = "(";
+        String returnValue = OPEN_BRACKET;
         for (int i = 0; i < geom.getNumCoords(); i++) {
             returnValue = returnValue + (int) geom.getX(i) + " ";
-            returnValue = returnValue + (int) geom.getY(i) + ", ";
+            returnValue = returnValue + (int) geom.getY(i) + COMMA_WITH_SPACE;
         }
-        return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+        return removeLastTwoChars(returnValue) + CLOSE_BRACKET;
+    }
+
+    private CharSequence removeLastTwoChars(String returnValue) {
+        return returnValue.subSequence(0, returnValue.length() - 2);
     }
 
 }
