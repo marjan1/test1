@@ -1,6 +1,7 @@
 import com.sinergise.geometry.*;
 
-import java.util.Arrays;
+import java.awt.image.ImagingOpException;
+import java.io.IOException;
 import java.util.Iterator;
 
 public class WKTWriter {
@@ -19,56 +20,73 @@ public class WKTWriter {
      * write(new GeometryCollection<Geometry>(new Geometry[]{new Point(4,6), new LineString(new double[] {4,6,7,10})}))
      * returns "GEOMETRYCOLLECTION (POINT (4 6), LINESTRING (4 6, 7 10))"
      */
-    public String write(Geometry geom) {
-        //TODO: Implement this
+    public String write(Geometry geom) throws IOException {
+
         if (geom.isEmpty()) {
             return geom.getClass().getSimpleName().toUpperCase() + " EMPTY";
         }
 
         if (geom instanceof MultiPolygon) {
-            String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
-            for (int i = 0; i < ((MultiPolygon) geom).size(); i++) {
-                returnValue = returnValue +"("+ getPolygonCoordinates(((MultiPolygon) geom).get(i)) + "), ";
-            }
-            return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+            return getMultiPolygonString(geom);
         }
         if (geom instanceof MultiPoint) {
-            String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
-            for (int i = 0; i < ((MultiPoint) geom).size(); i++) {
-                returnValue = returnValue + getPointCoordinates(((MultiPoint) geom).get(i)) + ", ";
-            }
-            return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+            return getMultiPointString(geom);
         }
         if (geom instanceof MultiLineString) {
-            String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
-            for (int i = 0; i < ((MultiLineString) geom).size(); i++) {
-                returnValue = returnValue + getLineStringCoordinates(((MultiLineString) geom).get(i)) + ", ";
-            }
-            return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+            return getMultiString(geom);
         }
         if (geom instanceof GeometryCollection) {
-            Iterator it = ((GeometryCollection) geom).iterator();
-            String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
-            while (it.hasNext()) {
-                returnValue = returnValue + write((Geometry) it.next()) + ", ";
-            }
-            return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+            return getGeometryCollectionString(geom);
         }
         if (geom instanceof LineString) {
-            String returnValue = geom.getClass().getSimpleName().toUpperCase() + " ";
-            return returnValue + getLineStringCoordinates((LineString) geom);
+            return concat(geom, getLineStringCoordinates((LineString) geom));
         }
         if (geom instanceof Point) {
-            String returnValue = geom.getClass().getSimpleName().toUpperCase() + " ";
-            returnValue = returnValue + getPointCoordinates((Point) geom);
-            return returnValue;
+            return concat(geom, getPointCoordinates((Point) geom));
+
         }
         if (geom instanceof Polygon) {
-            String returnValue = geom.getClass().getSimpleName().toUpperCase() + " ";
-
-            return returnValue + "(" + getPolygonCoordinates(((Polygon) geom)) + ")";
+            return concat(geom, "(", getPolygonCoordinates(((Polygon) geom)), ")");
         }
-        throw new UnsupportedOperationException("Parsing not good");
+        throw new IOException("Parsing not good");
+    }
+
+    private String getGeometryCollectionString(Geometry geom)throws IOException {
+        Iterator it = ((GeometryCollection) geom).iterator();
+        String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
+        while (it.hasNext()) {
+            returnValue = returnValue + write((Geometry) it.next()) + ", ";
+        }
+        return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+    }
+
+    private String getMultiString(Geometry geom) {
+        String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
+        for (int i = 0; i < ((MultiLineString) geom).size(); i++) {
+            returnValue = returnValue + getLineStringCoordinates(((MultiLineString) geom).get(i)) + ", ";
+        }
+        return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+    }
+
+    private String getMultiPointString(Geometry geom) {
+        String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
+        for (int i = 0; i < ((MultiPoint) geom).size(); i++) {
+            returnValue = returnValue + getPointCoordinates(((MultiPoint) geom).get(i)) + ", ";
+        }
+        return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+    }
+
+    private String getMultiPolygonString(Geometry geom) {
+        String returnValue = geom.getClass().getSimpleName().toUpperCase() + " (";
+        for (int i = 0; i < ((MultiPolygon) geom).size(); i++) {
+            returnValue = returnValue + "(" + getPolygonCoordinates(((MultiPolygon) geom).get(i)) + "), ";
+        }
+        return returnValue.subSequence(0, returnValue.length() - 2) + ")";
+    }
+
+    private String concat(Geometry geometry, String... parts) {
+
+        return geometry.getClass().getSimpleName().toUpperCase() + " " + String.join("", parts);
     }
 
     private String getPolygonCoordinates(Polygon geom) {
@@ -94,56 +112,4 @@ public class WKTWriter {
         return returnValue.subSequence(0, returnValue.length() - 2) + ")";
     }
 
-
-    public static void main(String[] args) {
-        //  System.out.println(new WKTWriter().write(new LineString(new double[]{30, 10, 10, 30, 40, 40})));
-        System.out.println(new WKTWriter()
-                .write(new GeometryCollection(new Geometry[]{new Point(4, 6),
-                        new MultiPolygon(new Polygon[]{
-                        new Polygon(new LineString(new double[]{4, 6, 7, 10, 4, 6}),
-                                new LineString[]{
-                                        new LineString(new double[]{1, 2, 3, 4, 1, 2}),
-                                        new LineString(new double[]{5, 6, 7, 8, 5, 6})}
-                        ),
-                                new Polygon(new LineString(new double[]{4, 6, 7, 10, 4, 6}), null)
-
-
-                        })})));
-
-
-        System.out.println(new WKTWriter()
-                .write(new GeometryCollection(new Geometry[]{new Point(4, 6),
-                        new Polygon(new LineString(new double[]{4, 6, 7, 10, 4, 6}),
-                        new LineString[]{
-                                new LineString(new double[]{1, 2, 3, 4, 1, 2}),
-                                new LineString(new double[]{5, 6, 7, 8, 5, 6})}
-                )})));
-
-        System.out.println(new WKTWriter()
-                .write(new GeometryCollection(new Geometry[]{new Point(4, 6),
-                        new MultiPoint(
-                                new Point[]{
-                                        new Point(1, 2),
-                                        new Point(5, 6)}
-                        )})));
-
-        System.out.println(new WKTWriter()
-                .write(
-                        new MultiLineString(
-                                new LineString[]{
-                                        new LineString(new double[]{1, 2, 3, 4, 1, 2}),
-                                        new LineString(new double[]{5, 6, 7, 8, 5, 6})}
-                        )));
-
-//        System.out.println(new WKTWriter()
-//                .write(new GeometryCollection(new Geometry[]{new Point(4, 6),
-//                        new MultiLineString(
-//                                new LineString[]{
-//                                        new LineString(new double[]{1, 2, 3, 4, 1, 2}),
-//                                        new LineString(new double[]{5, 6, 7, 8, 5, 6})}
-//                        )})));
-//        System.out.println(new WKTWriter().write(new GeometryCollection(new Geometry[]{new Point(4, 6), new LineString(new double[]{4, 6, 7, 10})})));
-//
-//        System.out.println(new WKTWriter().write(new GeometryCollection(new Geometry[]{new Point(), new LineString(new double[]{4, 6, 7, 10})})));
-    }
 }
