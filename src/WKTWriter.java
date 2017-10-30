@@ -45,22 +45,14 @@ public class WKTWriter {
             return getGeometryCollectionString(geom);
         }
         if (geom instanceof LineString) {
-            if (geom.isEmpty()) {
-                return concat(geom, EMPTY);
-            }
+
             return concat(geom, getLineStringCoordinates((LineString) geom));
         }
         if (geom instanceof Point) {
-            if (geom.isEmpty()) {
-                return concat(geom, EMPTY);
-            }
             return concat(geom, getPointCoordinates((Point) geom));
 
         }
         if (geom instanceof Polygon) {
-            if (geom.isEmpty()) {
-                return concat(geom, EMPTY);
-            }
             return concat(geom, OPEN_BRACKET, getPolygonCoordinates(((Polygon) geom)), CLOSE_BRACKET);
         }
         throw new IOException("Parsing not good");
