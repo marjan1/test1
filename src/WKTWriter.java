@@ -39,19 +39,28 @@ public class WKTWriter {
             return getMultiPointString(geom);
         }
         if (geom instanceof MultiLineString) {
-            return getMultiString(geom);
+            return getMultiLineString(geom);
         }
         if (geom instanceof GeometryCollection) {
             return getGeometryCollectionString(geom);
         }
         if (geom instanceof LineString) {
+            if (geom.isEmpty()) {
+                return concat(geom, EMPTY);
+            }
             return concat(geom, getLineStringCoordinates((LineString) geom));
         }
         if (geom instanceof Point) {
+            if (geom.isEmpty()) {
+                return concat(geom, EMPTY);
+            }
             return concat(geom, getPointCoordinates((Point) geom));
 
         }
         if (geom instanceof Polygon) {
+            if (geom.isEmpty()) {
+                return concat(geom, EMPTY);
+            }
             return concat(geom, OPEN_BRACKET, getPolygonCoordinates(((Polygon) geom)), CLOSE_BRACKET);
         }
         throw new IOException("Parsing not good");
@@ -66,8 +75,9 @@ public class WKTWriter {
         return removeLastTwoChars(returnValue) + CLOSE_BRACKET;
     }
 
-    private String getMultiString(Geometry geom) {
+    private String getMultiLineString(Geometry geom) {
         String returnValue = geom.getClass().getSimpleName().toUpperCase() + OPEN_BRACKET_WITH_SPACE;
+
         for (int i = 0; i < ((MultiLineString) geom).size(); i++) {
             returnValue = returnValue + getLineStringCoordinates(((MultiLineString) geom).get(i)) + COMMA_WITH_SPACE;
         }
@@ -95,7 +105,11 @@ public class WKTWriter {
         return geometry.getClass().getSimpleName().toUpperCase() + " " + String.join("", parts);
     }
 
+
     private String getPolygonCoordinates(Polygon geom) {
+        if (geom.isEmpty()) {
+            return geom.getClass().getSimpleName().toUpperCase() + EMPTY;
+        }
         String returnValue = getLineStringCoordinates(geom.getOuter());
         if (geom.getNumHoles() > 0) {
             for (int i = 0; i < geom.getNumHoles(); i++) {
@@ -106,10 +120,16 @@ public class WKTWriter {
     }
 
     private String getPointCoordinates(Point geom) {
+        if (geom.isEmpty()) {
+            return geom.getClass().getSimpleName().toUpperCase() + EMPTY;
+        }
         return OPEN_BRACKET + (int) geom.getX() + " " + (int) geom.getY() + CLOSE_BRACKET;
     }
 
     private String getLineStringCoordinates(LineString geom) {
+        if (geom.isEmpty()) {
+            return geom.getClass().getSimpleName().toUpperCase() + EMPTY;
+        }
         String returnValue = OPEN_BRACKET;
         for (int i = 0; i < geom.getNumCoords(); i++) {
             returnValue = returnValue + (int) geom.getX(i) + " ";
@@ -119,7 +139,24 @@ public class WKTWriter {
     }
 
     private CharSequence removeLastTwoChars(String returnValue) {
-        return returnValue.subSequence(0, returnValue.length() - 2);
+        if (returnValue.length() > 2) {
+            return returnValue.subSequence(0, returnValue.length() - 2);
+        }
+        return returnValue.subSequence(0, returnValue.length() - 1);
+    }
+
+    public static void main(String[] args) {
+        LineString ls = new LineString();
+        MultiLineString mls1 = new MultiLineString(new LineString[]{ls});
+
+        LineString lsP = new LineString();
+        Polygon pl2 = new Polygon(new LineString(new double[]{35, 10, 45, 45, 15, 40, 10, 20, 35, 10}), new LineString[]{lsP});
+
+        try {
+            System.out.println(new WKTWriter().write(pl2));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
